@@ -12,6 +12,10 @@ su agbsaap
 ```
 
 ```bash
+su redmine
+```
+
+```bash
 cd ~
 ```
 
