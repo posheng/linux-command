@@ -1,5 +1,9 @@
 # linux-command
 ```bash
+sudo bash
+```
+
+```bash
 sudo bash -c "su - \$(ls /home | grep -w -E 'agbsaap|deploy' | head -1)"
 ```
 
