@@ -40,7 +40,7 @@ nohup ./auto-build &
 ```
 
 ```bash
-tail -f nohup
+tail -f nohup.out
 ```
 
 ```bash
