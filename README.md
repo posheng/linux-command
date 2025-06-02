@@ -40,6 +40,10 @@ nohup ./auto-build &
 ```
 
 ```bash
+tail -f nohup
+```
+
+```bash
 nohup /app/scheduler/wildfly-18.0.1.Final/bin/standalone.sh -b 0.0.0.0 > /dev/null 2>&1 &
 ```
 
