@@ -16,179 +16,132 @@ foreach ($branch in $branchList) {
 try {
     $dateFormat = Get-Date -Format "yyyyMMdd"
     $markdownFile = Join-Path -Path $PSScriptRoot -ChildPath "Deploy_UAT_$dateFormat.md"
-    Write-Host "Generating Markdown file: $markdownFile"
+    Write-Host "Generating Markdown file: $markdownFile" -ForegroundColor Cyan
+
+    # Helper functions for markdown generation
+    function Append-ToMarkdown {
+        param([string]$text)
+        $text | Out-File -FilePath $markdownFile -Append
+    }
+
+    function Add-BashCodeBlock {
+        param([string[]]$codeLines)
+        '```bash' | Out-File -FilePath $markdownFile -Append
+        foreach ($line in $codeLines) {
+            $line | Out-File -FilePath $markdownFile -Append
+        }
+        '```' | Out-File -FilePath $markdownFile -Append
+    }
+
+    function Add-Separator {
+        '----------' | Out-File -FilePath $markdownFile -Append
+    }
+
+    # Initialize markdown file with header and branches
     "# Deploy UAT - Deploy List - $(Get-Date -Format 'yyyy-MM-dd')" | Out-File -FilePath $markdownFile
-     "`n## Branches" | Out-File -FilePath $markdownFile -Append
-    foreach ($branch in $branchList) {
-        "- $branch" | Out-File -FilePath $markdownFile -Append
-    }
-    "`n## Work Area" | Out-File -FilePath $markdownFile -Append
-    "`nGo to development directory" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "cd .\Developer\" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`nDelete web folder" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "Remove-Item -Recurse -Force .\web\" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`nClone the repository" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git clone https://it-gitlab.intra.acer.com/agbs-ejb/web.git" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
     
-    "`nGo to project directory" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "cd .\web\" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`n## Sync Master" | Out-File -FilePath $markdownFile -Append
+    Append-ToMarkdown "`n## Branches"
     foreach ($branch in $branchList) {
-        "Sync branch : ${branch}" | Out-File -FilePath $markdownFile -Append
-
-        '```bash' | Out-File -FilePath $markdownFile -Append
-        "git checkout master" | Out-File -FilePath $markdownFile -Append
-        '```' | Out-File -FilePath $markdownFile -Append
-
-        '```bash' | Out-File -FilePath $markdownFile -Append
-        "git checkout $branch" | Out-File -FilePath $markdownFile -Append
-        '```' | Out-File -FilePath $markdownFile -Append
-
-        '```bash' | Out-File -FilePath $markdownFile -Append
-        "git merge master" | Out-File -FilePath $markdownFile -Append
-        '```' | Out-File -FilePath $markdownFile -Append
-
-        '```bash' | Out-File -FilePath $markdownFile -Append
-        "git push" | Out-File -FilePath $markdownFile -Append
-        '```' | Out-File -FilePath $markdownFile -Append
-
-        '----------' | Out-File -FilePath $markdownFile -Append
+        Append-ToMarkdown "- $branch"
     }
 
-    "`n## Create a backup of the release branch" | Out-File -FilePath $markdownFile -Append
-    "`nCheckout release branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git checkout release" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
+    # Work Area section
+    Append-ToMarkdown "`n## Work Area"
+    Add-BashCodeBlock @("cd .\Developer\")
+    Add-BashCodeBlock @("Remove-Item -Recurse -Force .\web\")
+    Add-BashCodeBlock @("git clone https://it-gitlab.intra.acer.com/agbs-ejb/web.git")
+    Add-BashCodeBlock @("cd .\web\")
 
-    "`nCreate a backup of the release branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git checkout -b bk_release_$dateFormat release" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`nPush the backup branch to remote" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git push -u origin bk_release_$dateFormat" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`n## Merge feature branches into release" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git checkout release" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-    '----------' | Out-File -FilePath $markdownFile -Append
-
+    # Sync Master section
+    Append-ToMarkdown "`n## Sync Master"
     foreach ($branch in $branchList) {
-        "`nMerge branch: ${branch}" | Out-File -FilePath $markdownFile -Append
-        '```bash' | Out-File -FilePath $markdownFile -Append
-        "git merge $branch" | Out-File -FilePath $markdownFile -Append
-        '```' | Out-File -FilePath $markdownFile -Append
-        
-        "`nCommit Message: ${branch}" | Out-File -FilePath $markdownFile -Append
-        '```bash' | Out-File -FilePath $markdownFile -Append
-        "git commit -m 'Merge branch $branch into release'" | Out-File -FilePath $markdownFile -Append
-        '```' | Out-File -FilePath $markdownFile -Append
-        '----------' | Out-File -FilePath $markdownFile -Append
+        Append-ToMarkdown "`n### branch: ${branch}"
+        Add-BashCodeBlock @("git checkout master")
+        Add-BashCodeBlock @("git checkout $branch")
+        Add-BashCodeBlock @("git merge master")
+        Add-BashCodeBlock @("git push")
+        Add-Separator
     }
 
-    "`nPush the updated release branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git push" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
+    # Create backup of release branch
+    Append-ToMarkdown "`n## Create a backup of the release branch"
+    Add-BashCodeBlock @("git checkout release")
+    Add-BashCodeBlock @("git checkout -b bk_release_$dateFormat release")
+    Add-BashCodeBlock @("git push -u origin bk_release_$dateFormat")
 
-    "`n## Create the deployUAT branch" | Out-File -FilePath $markdownFile -Append
-    "`nDelete the existing deployUAT branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "curl --request DELETE --header `"PRIVATE-TOKEN: $Token`" `"https://it-gitlab.intra.acer.com/api/v4/projects/54/repository/branches/deployUAT`"" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
+    # Merge feature branches into release
+    Append-ToMarkdown "`n## Merge feature branches into release"
+    Add-BashCodeBlock @("git checkout release")
+    Add-Separator
 
-     "`nCreate a new deployUAT branch from release" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git checkout -b deployUAT release" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
+    foreach ($branch in $branchList) {
+        Append-ToMarkdown "`n### branch: ${branch}"
+        Add-BashCodeBlock @("git merge $branch")
+        Add-BashCodeBlock @("git commit -m 'Merge branch $branch into release'")
+        Add-Separator
+    }
 
-    "`nPush the deployUAT branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git push -u origin deployUAT" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
+    # Push the updated release branch
+    Append-ToMarkdown "`n## Push the updated release branch"
+    Add-BashCodeBlock @("git push")
+    Append-ToMarkdown "`nCheck the status of the [GitLab pipeline](https://it-gitlab.intra.acer.com/agbs-ejb/web/-/pipelines)"
 
-    "`n## Create the uatACA branch" | Out-File -FilePath $markdownFile -Append
-    "`nDelete the existing uatACA branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "curl --request DELETE --header `"PRIVATE-TOKEN: $Token`" `"https://it-gitlab.intra.acer.com/api/v4/projects/54/repository/branches/uatACA`"" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
+    # Deploy to UAT section - Create UAT branches
+    Append-ToMarkdown "`n## Deploy to UAT (After merging all branches) - Create each UAT branch from release"
 
-    "`nCreate a new uatACA branch from release" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git checkout -b uatACA release" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
+    # Function to add a UAT branch creation section
+    function Add-UatBranchSection {
+        param([string]$branchName)
+        Append-ToMarkdown "`n### Create the $branchName branch"
+        Add-BashCodeBlock @("curl --request DELETE --header `"PRIVATE-TOKEN: $Token`" `"https://it-gitlab.intra.acer.com/api/v4/projects/54/repository/branches/$branchName`"")
+        Add-BashCodeBlock @("git checkout -b $branchName release")
+        Add-BashCodeBlock @("git push -u origin $branchName")
+        Append-ToMarkdown "`nCheck the status of the [GitLab pipeline](https://it-gitlab.intra.acer.com/agbs-ejb/web/-/pipelines)"
+        Append-ToMarkdown ""
+        Add-Separator
+    }
 
-    "`nPush the uatACA branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git push -u origin uatACA" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
+    # Add sections for each UAT branch
+    Add-UatBranchSection "deployUAT"
+    Add-UatBranchSection "uatACA"
+    Add-UatBranchSection "uatAIL"
+    Add-UatBranchSection "uatAPIN"
+    Add-UatBranchSection "uatCN"
 
-    "`n## Create the uatAIL branch" | Out-File -FilePath $markdownFile -Append
-    "`nDelete the existing uatAIL branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "curl --request DELETE --header `"PRIVATE-TOKEN: $Token`" `"https://it-gitlab.intra.acer.com/api/v4/projects/54/repository/branches/uatAIL`"" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
+    # Start Server section
+    Append-ToMarkdown "`n## Start Server"
 
-     "`nCreate a new uatAIL branch from release" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git checkout -b uatAIL release" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
+    # deployUAT (Dcoker) 
+    Append-ToMarkdown "`n### deployUAT (Dcoker)"
+    Add-BashCodeBlock @("sudo su - agbsaap")
+    Add-BashCodeBlock @("cd /app/jbHome")
+    Add-BashCodeBlock @("./agbsejb-web-uat.sh restart")
+    Add-Separator
 
-    "`nPush the uatAIL branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git push -u origin uatAIL" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
+    # uatACA (Dcoker)
+    Append-ToMarkdown "`n### uatACA (Dcoker)"
+    Add-BashCodeBlock @("sudo su - agbsaap")
+    Add-BashCodeBlock @("cd /app/jbHome")
+    Add-BashCodeBlock @("./agbsejb-web-uataca.sh restart")
+    Add-Separator
 
-    "`n## Create the uatAPIN branch" | Out-File -FilePath $markdownFile -Append
-    "`nDelete the existing uatAPIN branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "curl --request DELETE --header `"PRIVATE-TOKEN: $Token`" `"https://it-gitlab.intra.acer.com/api/v4/projects/54/repository/branches/uatAPIN`"" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
+    # uatAIL (Copy from GitLab Pipeline - Build AIL Image) (Physical)
+    Append-ToMarkdown "`n### uatAIL (Copy from GitLab Pipeline - Build AIL Image) (Physical)"
+    Add-BashCodeBlock @("sudo su - agbsaap")
+    Add-BashCodeBlock @("cd /home/agbsaap")
+    Add-BashCodeBlock @("./deploy_se_war.sh deploy [dc6c681ab693]")
+    Append-ToMarkdown "`nex. writing image sha256:dc6c681ab693f98c2037a337532f82aa147a4d62c3bfe7c7719ea8c8006d55cc done"
 
-     "`nCreate a new uatAPIN branch from release" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git checkout -b uatAPIN release" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
+    # uatAPIN Auto start server
+    Append-ToMarkdown "`n### uatAPIN (Auto start server)"
+    
+    # uatCN Auto start server
+    Append-ToMarkdown "`n### uatCN (Auto start server)"
 
-    "`nPush the uatAPIN branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git push -u origin uatAPIN" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`n## Create the uatCN branch" | Out-File -FilePath $markdownFile -Append
-    "`nDelete the existing uatCN branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "curl --request DELETE --header `"PRIVATE-TOKEN: $Token`" `"https://it-gitlab.intra.acer.com/api/v4/projects/54/repository/branches/uatCN`"" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-     "`nCreate a new uatCN branch from release" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git checkout -b uatCN release" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`nPush the uatCN branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git push -u origin uatCN" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
+    # Open the markdown file in VS Code
     Write-Host "Generated Files: $markdownFile" -ForegroundColor Green
     Start-Process "code" -ArgumentList $markdownFile
 } catch {
-    Write-Host "An error occurred: $_"
+    Write-Host "An error occurred: $_" -ForegroundColor Red
     Write-Error $_.Exception.StackTrace
 }
