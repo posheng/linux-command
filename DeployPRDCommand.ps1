@@ -17,139 +17,132 @@ try {
     $dateFormat = Get-Date -Format "yyyyMMdd"
     $markdownFile = Join-Path -Path $PSScriptRoot -ChildPath "Deploy_PRD_$dateFormat.md"
     Write-Host "Generating Markdown file: $markdownFile"
+
+    # Helper function to append content to the markdown file
+    function Append-ToMarkdown {
+        param (
+            [Parameter(ValueFromPipeline = $true)]
+            [string]$Content
+        )
+        $Content | Out-File -FilePath $markdownFile -Append
+    }
+
+    # Helper function to add bash code block
+    function Add-BashCodeBlock {
+        param (
+            [Parameter(ValueFromPipeline = $true)]
+            [string[]]$Commands
+        )
+        
+        Append-ToMarkdown '```bash'
+        foreach ($cmd in $Commands) {
+            Append-ToMarkdown $cmd
+        }
+        Append-ToMarkdown '```'
+    }
+
+    # Helper function to add section separator
+    function Add-Separator {
+        Append-ToMarkdown ''
+        Append-ToMarkdown '----------'
+    }
+
+    # Initialize the markdown file with header and branches
     "# Deploy PRD - Deploy List - $(Get-Date -Format 'yyyy-MM-dd')" | Out-File -FilePath $markdownFile
-     "`n## Branches" | Out-File -FilePath $markdownFile -Append
-    foreach ($branch in $branchList) {
-        "- $branch" | Out-File -FilePath $markdownFile -Append
-    }
-    "`n## Work Area" | Out-File -FilePath $markdownFile -Append 
-    "`nGo to development directory" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "cd .\Developer\" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`nDelete web folder" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "Remove-Item -Recurse -Force .\web\" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`nClone the repository" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git clone https://it-gitlab.intra.acer.com/agbs-ejb/web.git" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
     
-    "`nGo to project directory" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "cd .\web\" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`n## Create a backup of the master branch" | Out-File -FilePath $markdownFile -Append
-    "`nCreate a backup of the master branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git checkout -b bk_master_$dateFormat master" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`nPush the backup branch to remote" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git push -u origin bk_master_$dateFormat" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`n## Merge all branches from the deployment list into master" | Out-File -FilePath $markdownFile -Append
+    Append-ToMarkdown "`n## Branches"
     foreach ($branch in $branchList) {
-        "`nMerge branch: ${branch}" | Out-File -FilePath $markdownFile -Append
-
-        '```bash' | Out-File -FilePath $markdownFile -Append
-        "git checkout $branch" | Out-File -FilePath $markdownFile -Append
-        '```' | Out-File -FilePath $markdownFile -Append
-
-        '```bash' | Out-File -FilePath $markdownFile -Append
-        "git merge master" | Out-File -FilePath $markdownFile -Append
-        '```' | Out-File -FilePath $markdownFile -Append
-
-        '```bash' | Out-File -FilePath $markdownFile -Append
-        "git push" | Out-File -FilePath $markdownFile -Append
-        '```' | Out-File -FilePath $markdownFile -Append
-
-        '```bash' | Out-File -FilePath $markdownFile -Append
-        "git checkout master" | Out-File -FilePath $markdownFile -Append
-        '```' | Out-File -FilePath $markdownFile -Append
-
-        '```bash' | Out-File -FilePath $markdownFile -Append
-        "git merge $branch" | Out-File -FilePath $markdownFile -Append
-        '```' | Out-File -FilePath $markdownFile -Append
-
-        '```bash' | Out-File -FilePath $markdownFile -Append
-        "git push" | Out-File -FilePath $markdownFile -Append
-        '```' | Out-File -FilePath $markdownFile -Append
-        "`nCheck the commit status in the [GitLab pipeline](https://it-gitlab.intra.acer.com/agbs-ejb/web/-/pipelines) after each push." | Out-File -FilePath $markdownFile -Append
-
-        '----------' | Out-File -FilePath $markdownFile -Append
+        Append-ToMarkdown "- $branch"
     }
 
-    "`n## Deploy to Live (After merging all branches and model build) - Create each Live branch from master" | Out-File -FilePath $markdownFile -Append
+    # Work Area section
+    Append-ToMarkdown "`n## Work Area"
+    Add-BashCodeBlock @("cd .\Developer\")
+    Add-BashCodeBlock @("Remove-Item -Recurse -Force .\web\")
+    Add-BashCodeBlock @("git clone https://it-gitlab.intra.acer.com/agbs-ejb/web.git")
+    Add-BashCodeBlock @("cd .\web\")
 
-    "`n### Create the prdAAP branch" | Out-File -FilePath $markdownFile -Append
-    "`nDelete the existing prdAAP branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "curl --request DELETE --header `"PRIVATE-TOKEN: $Token`" `"https://it-gitlab.intra.acer.com/api/v4/projects/54/repository/branches/prdAAP`"" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
+    # Create a backup of the master branch
+    Append-ToMarkdown "`n## Create a backup of the master branch"
+    Add-BashCodeBlock @("git checkout -b bk_master_$dateFormat master")
+    Add-BashCodeBlock @("git push -u origin bk_master_$dateFormat")
 
-     "`nCreate a new prdAAP branch from master" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git checkout -b prdAAP master" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`nPush the prdAAP branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git push -u origin prdAAP" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`n### Create the prdAIL branch" | Out-File -FilePath $markdownFile -Append
-    "`nDelete the existing prdAIL branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "curl --request DELETE --header `"PRIVATE-TOKEN: $Token`" `"https://it-gitlab.intra.acer.com/api/v4/projects/54/repository/branches/prdAIL`"" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-     "`nCreate a new prdAIL branch from master" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git checkout -b prdAIL master" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`nPush the prdAIL branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git push -u origin prdAIL" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`n### Create the prdAPIN branch" | Out-File -FilePath $markdownFile -Append
-    "`nDelete the existing prdAPIN branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "curl --request DELETE --header `"PRIVATE-TOKEN: $Token`" `"https://it-gitlab.intra.acer.com/api/v4/projects/54/repository/branches/prdAPIN`"" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-     "`nCreate a new prdAPIN branch from master" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git checkout -b prdAPIN master" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`nPush the prdAPIN branch" | Out-File -FilePath $markdownFile -Append
-    '```bash' | Out-File -FilePath $markdownFile -Append
-    "git push -u origin prdAPIN" | Out-File -FilePath $markdownFile -Append
-    '```' | Out-File -FilePath $markdownFile -Append
-
-    "`n### Delete branches that have already been merged" | Out-File -FilePath $markdownFile -Append
+    # Merge all branches from the deployment list into master
+    Append-ToMarkdown "`n## Merge all branches from the deployment list into master"
     foreach ($branch in $branchList) {
-        '```bash' | Out-File -FilePath $markdownFile -Append
-        "git branch -d $branch" | Out-File -FilePath $markdownFile -Append
-        '```' | Out-File -FilePath $markdownFile -Append
+        Append-ToMarkdown "`n### branch: ${branch}"
+        Add-BashCodeBlock @("git checkout $branch")
+        Add-BashCodeBlock @("git merge master")
+        Add-BashCodeBlock @("git push")
+        Add-BashCodeBlock @("git checkout master")
+        Add-BashCodeBlock @("git merge $branch")
+        Add-BashCodeBlock @("git push")
+        
+        Append-ToMarkdown "`nCheck the status of the [GitLab pipeline](https://it-gitlab.intra.acer.com/agbs-ejb/web/-/pipelines)"
+        Add-Separator
+    }
 
-        '```bash' | Out-File -FilePath $markdownFile -Append
-        "git push origin --delete $branch" | Out-File -FilePath $markdownFile -Append
-        '```' | Out-File -FilePath $markdownFile -Append
+    # Deploy to Live section
+    Append-ToMarkdown "`n## Deploy to Live (After merging all branches and model build) - Create each Live branch from master"
+    
+    # Create PRD branches
+    $prdBranches = @("prdAAP", "prdACA", "prdAIL", "prdAPIN")
+    foreach ($branch in $prdBranches) {
+        Append-ToMarkdown "`n### Create the $branch branch"
+        Add-BashCodeBlock @("curl --request DELETE --header `"PRIVATE-TOKEN: $Token`" `"https://it-gitlab.intra.acer.com/api/v4/projects/54/repository/branches/$branch`"")
+        Add-BashCodeBlock @("git checkout -b $branch master")
+        Add-BashCodeBlock @("git push -u origin $branch")
+        
+        Append-ToMarkdown "`nCheck the status of the [GitLab pipeline](https://it-gitlab.intra.acer.com/agbs-ejb/web/-/pipelines)"
+        Add-Separator
+    }
+
+    # Start Server section
+    Append-ToMarkdown "`n## Start Server"
+    
+    # prdAAP
+    Append-ToMarkdown "`n### prdAAP (Copy from GitLab Pipeline - Build prdAAP Image) (Physical) (Every Mon and Thu)"
+    Add-BashCodeBlock @("sudo su - agbsaap")
+    Add-BashCodeBlock @("cd /home/agbsaap")
+    Add-BashCodeBlock @("./deploy_se_war.sh deploy [dc6c681ab693]")
+    Append-ToMarkdown "`nex. writing image sha256:dc6c681ab693f98c2037a337532f82aa147a4d62c3bfe7c7719ea8c8006d55cc done"
+    Add-Separator
+    
+    # prdACA
+    Append-ToMarkdown "`n### prdACA (Docker) (Every Mon and Thur)"
+    Add-BashCodeBlock @("sudo su - agbsaap")
+    Add-BashCodeBlock @("cd /app/jbHome")
+    Add-BashCodeBlock @("./agbsejb-web-prdaca.sh restart")
+    Add-Separator
+    
+    # prdAIL
+    Append-ToMarkdown "`n### prdAIL (Copy from GitLab Pipeline - Build prdAIL Image) (Physical) (Every Tue and Fri - AM 8:10)"
+    Add-BashCodeBlock @("sudo su - agbsaap")
+    Add-BashCodeBlock @("cd /home/agbsaap")
+    Add-BashCodeBlock @("./deploy_se_war.sh deploy [dc6c681ab693]")
+    Append-ToMarkdown "`nex. writing image sha256:dc6c681ab693f98c2037a337532f82aa147a4d62c3bfe7c7719ea8c8006d55cc done"
+    Add-Separator
+
+    # prdAPIN
+    Append-ToMarkdown "`n### prdAPIN (Copy from GitLab Pipeline - Build prdAPIN Image) (Physical) (Every Tue and Fri)"
+    Add-BashCodeBlock @("sudo su - deploy")
+    Add-BashCodeBlock @("cd /home/deploy/")
+    Add-BashCodeBlock @("./deploy_se_war.sh deploy [dc6c681ab693]")
+    Append-ToMarkdown "`nex. writing image sha256:dc6c681ab693f98c2037a337532f82aa147a4d62c3bfe7c7719ea8c8006d55cc done"
+    Add-Separator
+    
+    # Delete branches section
+    Append-ToMarkdown "`n## Delete branches that have already been merged"
+    foreach ($branch in $branchList) {
+        Append-ToMarkdown "`n### branch: ${branch}"
+        Add-BashCodeBlock @("git branch -d $branch")
+        Add-BashCodeBlock @("git push origin --delete $branch")
+        Add-Separator
     }
 
     Write-Host "Generated Files: $markdownFile" -ForegroundColor Green
     Start-Process "code" -ArgumentList $markdownFile
 } catch {
-    Write-Host "An error occurred: $_"
+    Write-Host "An error occurred: $_" -ForegroundColor Red
     Write-Error $_.Exception.StackTrace
 }
