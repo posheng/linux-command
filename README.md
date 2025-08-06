@@ -1,4 +1,5 @@
 # linux-command
+## AGBS Seam
 ```bash
 sudo bash
 ```
@@ -53,4 +54,12 @@ nohup /app/scheduler/wildfly-18.0.1.Final/bin/standalone.sh -b 0.0.0.0 > /dev/nu
 
 ```bash
 ssh -i C:\Users\xxxxxxx\.ssh\AAP_UAT_Keys\xxx@xxx.com.pem username@xx.xxx.xxx.xxx
+```
+
+## ASEP
+```bash
+sudo su - gitlab-runner
+```
+
+```bash
 ```
